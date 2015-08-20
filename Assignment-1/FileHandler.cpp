@@ -64,6 +64,7 @@ int FileHandler::writeBlock(byte *data) {
 			return 0;
 }
 
+//returns file size in blocks
 int FileHandler::getSize() {
 	fio.seekg(0,ios::end);
 	int a =((fio.tellg()+1));

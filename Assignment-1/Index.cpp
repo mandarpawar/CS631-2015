@@ -11,6 +11,7 @@
 
 #include "FileHandler.h"
 #include "LookupIter.h"
+#include <math.h>
 
 #include<set>
 
@@ -134,11 +135,14 @@ public:
         int isLesser;
 
         while (current != 0) {
+            cout<<"Before Insertion:"<< (long int)(*key)<<endl;
+            current->display(keytype);
             Utils::copyBytes((accessPath[height++]), (current->myaddr), NODE_OFFSET_SIZE);
             for (i = 0; i < current->numkeys; i++) {
                 current->getKey(keytype, nodekey, i);
                 isLesser = compare(nodekey, key, keytype);
                 if (isLesser >= 0) {
+                    cout<<"IsLesser:"<<isLesser;
                     break;
                 }
             }
@@ -147,11 +151,34 @@ public:
                 if(splitNecessary(current->numkeys + 1, 'c') != 1){
                     addToLeafNoSplit(key, payload, i, &current);
                 }
-                else{
+                else{       //Here split is necessary.
                     /*
                       * TODO: Fill in the required code.
                       * Hint: You will need to use the function handleLeafSplit
                       */
+                    //call handleLeafSplit function..
+                       //int handleLeafSplit(byte key[], byte payload[], TreeNode **rcvd_node,
+                                       //char accessPath[][NODE_OFFSET_SIZE], int height, int insertPos, int splitPos){
+                    if(isLesser == 0)   //duplicate exists
+                    {
+                        cout<<"Duplicate value was supposed to be inserted";
+                        //Algorithm: split the node when duplicate starts..
+                        //Nothing else..
+                        if(i!=0)        //Split only when this current node is sole node
+                            handleLeafSplit( key , payload , &current , accessPath , height , i , i );
+                        else
+                            current = 0;        //This will just ignore the insert key.
+
+                        //current=0;        //now handleLeafSplit will do this.
+                    }
+                    else                //normal case..New key is not duplicate..
+                    {
+                        cout<<"Handle split:"<< key <<","<< payload <<","<< height<<","<< i<<","<<current->numkeys<<","<< ceil(((current->numkeys)+1)/2) <<endl;
+                        handleLeafSplit( key , payload , &current , accessPath , height , i , ceil(((current->numkeys)+1)/2.0) );
+                    }
+
+                       //cout<<"Handle split:"<< key <<","<< payload <<","<< height<<","<< i<<","<<current->numkeys<<","<< ceil(((current->numkeys)+1)/2) <<endl;
+                       //handleLeafSplit( key , payload , &current , accessPath , height , i , ceil(((current->numkeys)+1)/2.0) );
                 }
             }
             else
@@ -175,7 +202,7 @@ public:
         Utils::copyBytes(header, Utils::getBytesForInt((long long int) 1), NODE_OFFSET_SIZE);
         Utils::copyBytes(rootAddress, Utils::getBytesForInt((long long int) 1), NODE_OFFSET_SIZE);
         fHandler->writeBlock(0, header);
-        storeNode(root, 1);
+        storeNode(root, 1);             //Root node is stored at offset 1...Offset zero is header block...
         return 0;
     }
     /*
@@ -210,7 +237,7 @@ public:
         /*
          * Temporary space to hold the node that will result on addition of new data
          */
-        int tempSpaceSize = DATA_SIZE + payloadlen + keylen(&keytype);
+        int tempSpaceSize = DATA_SIZE + payloadlen + keylen(&keytype);      //Existing data size + key + value(payload) pair
         char *tempSpace = (char*) calloc(tempSpaceSize, sizeof(char));
 
         copyToTemp(key, payload, insertPos, node, tempSpaceSize, tempSpace);
@@ -478,7 +505,7 @@ public:
                 }
             }
 
-            if (current->flag == 'c') {
+            if (current->flag == 'c') {             //This means it is leaf node..and you found data
                 if (isLesser != 0)	//key not found
                     return 1;
 
@@ -497,16 +524,63 @@ public:
      */
     LookupIter* find(char key[]) {
 
-        if (root == 0) {
-            LookupIter* emptyResult = new LookupIter();
-            printf("BPlus Tree empty.");
-            return emptyResult;
-        }
+        LookupIter* liResult = NULL;
 
-        /*
-         * TODO: Fill in code to lookup the index and return an iterator for the results
-         */
+        if (root == 0) {
+            liResult = new LookupIter();
+            printf("BPlus Tree empty.");
+            //return emptyResult;
+        }
+        else
+        {
+
+            /*
+             * TODO: Fill in code to lookup the index and return an iterator for the results
+             */
+            //First go to the desired child node.
+            //Check if key exists.
+            //If exists:
+            //    Create lookup iterator object and populate values and return.
+            //else
+            //    Create null iterator and return.
+
+            TreeNode * current = new TreeNode();
+            loadNode(current,rootAddress);
+
+            char nodekey[keylen(&keytype)];
+
+            int i, isLesser=-2;
+            while(current != 0) {
+                current->display(keytype);
+
+                for (i = 0 ; i<current->numkeys ; i++ ) {
+                    current->getKey(keytype,nodekey,i);
+                    isLesser = compare(nodekey,key,keytype);
+                    if ( isLesser == 1 || (isLesser ==0 && current->flag =='c') ){
+                        break;
+                    }
+                }
+
+                if (current->flag == 'c') {                 //This means it is leaf node..and you found data
+                    if (isLesser != 0)                      //key not found
+                    {
+                        liResult = new LookupIter();     //return null iterator.
+                    }
+                    else
+                    {   //key found, copy payload
+                        //strncpy(payload,&(current->data[DATA_SIZE-(i+1)*payloadlen]),payloadlen);
+                        //return 0;
+                        liResult = new LookupIter(key, keytype, current, i ,payloadlen);
+                    }
+                    break;
+                }
+                else
+                    handleNonLeaf(&current, i);
+            }
+        }
+        return liResult;
     }
+
 };
 
 void testDups(Index *index);
@@ -522,14 +596,14 @@ int main() {
     //Sample code to handle indexes.
     indexHandlingSample();
 
-    /*
-     * Checkout testInserts() and testDups() for initial testing and understanding the LookupIterator API
-     * You should create more test cases of your own for correctness checking
-     * We will use a separate set of test cases to evaluate your submission
-     */
 
+     //* Checkout testInserts() and testDups() for initial testing and understanding the LookupIterator API
+     //* You should create more test cases of your own for correctness checking
+     //* We will use a separate set of test cases to evaluate your submission
+
+    cout<< "This is going to be awesome" << endl;
     cout<<"TODO: Implementation"<<endl;
-    return 0;
+   return 0;
 }
 
 void indexHandlingSample() {
@@ -540,6 +614,7 @@ void indexHandlingSample() {
 
     char *filename = "indexomp1.ind";
     Index *index = new Index(filename, &keyType, PAYLOAD_LEN);
+    testInserts(index);
     delete(index);
 }
 
@@ -548,13 +623,14 @@ void testInserts(Index *index) {
     srand(1);
     char *keyN = (char *)calloc(8,1);
     char payL[PAYLOAD_LEN];
+    int inputarr[] = {1,2,3,4,5,5,5,5};
 
-    int numInserts = 10;
-    for(int i = 0 ; i < numInserts ; i++){
+    int numInserts = 8;
+    for(int i = 0 ; i <  numInserts; i++){
         a = rand()%100;
-        printf("inserting %d\n",a);
+        printf("inserting %d\n",inputarr[i]);
         printf("--------\n");
-        Utils::copyBytes(keyN,Utils::getBytesForInt(a),8);
+        Utils::copyBytes(keyN,Utils::getBytesForInt(inputarr[i]),8);
         strcpy(payL,keyN);
         index->insert(keyN,payL);
         index->find(keyN);
@@ -562,8 +638,28 @@ void testInserts(Index *index) {
 
     }
 
-    index->findFirst(keyN, payL);
-    cout<<"Value received: "<<Utils::getIntForBytes(payL)<<endl;
+
+    //index->findFirst(keyN, payL);
+    //cout<<"Value received: "<<Utils::getIntForBytes(payL)<<endl;
+
+    //Iterator Testing
+    LookupIter * li = index->find(keyN);
+    //Display Iterator data.
+    if(!li->isNull())
+    {
+        char data[PAYLOAD_LEN];
+        li->get(data);
+        cout<<"Iterator Data:"<<Utils::getIntForBytes(data)<<endl;
+        while(li->hasNext())
+        {
+            li->next();
+            li->get(data);
+            cout<<"Iterator Data:"<<Utils::getIntForBytes(data)<<endl;
+        }
+    }
+
+
+    //cin >> a;
     return;
 }
 
@@ -615,3 +711,5 @@ void testDups(Index *index) {
         delete(res);
     }
 }
+
+

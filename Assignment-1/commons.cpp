@@ -12,7 +12,8 @@ int keylen(KeyType *keytype) {
 /*
  * Compare function. Takes care of composite keys
  */
-//returns -1 if first value is smaller
+//returns -1 if first value is smaller, and 1 if first is greater than second
+//returns 0 if two are equal
 int compare(char *_key1, char *_key2, KeyType keyType) {
     char *key1 = _key1, *key2 = _key2;
     for (int i = 0; i < keyType.numAttrs; i++) {
@@ -22,12 +23,14 @@ int compare(char *_key1, char *_key2, KeyType keyType) {
                     return 1;
                 else if (Utils::getIntForBytes(key1) < Utils::getIntForBytes(key2))
                     return -1;
+                else
+                    return 0;
                 break;
 
             case stringType:
                 int result = strncmp(key1, key2, keyType.attrLen[i]);
-                if (result != 0)
-                    return result;
+                //if (result != 0)      //Removed to get actual values.
+                return result;
                 break;
         }
         key1 = key1 + keyType.attrLen[i];

@@ -12,8 +12,8 @@
 class TreeNode {
 public:
 	int numkeys;
-	byte data[DATA_SIZE];
-	byte myaddr[NODE_OFFSET_SIZE];
+    byte data[DATA_SIZE];               //This stores keys... THis is 120 byte array
+    byte myaddr[NODE_OFFSET_SIZE];      //This stores payload(pointer/data).. This is 8 byte array
 	Utils *utils;
 	char flag;
 	TreeNode* next;
