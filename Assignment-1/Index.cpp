@@ -142,7 +142,7 @@ public:
                 current->getKey(keytype, nodekey, i);
                 isLesser = compare(nodekey, key, keytype);
                 if (isLesser >= 0) {
-                    cout<<"IsLesser:"<<isLesser;
+                    //cout<<"IsLesser:"<<isLesser;
                     break;
                 }
             }
@@ -161,20 +161,87 @@ public:
                                        //char accessPath[][NODE_OFFSET_SIZE], int height, int insertPos, int splitPos){
                     if(isLesser == 0)   //duplicate exists
                     {
-                        cout<<"Duplicate value was supposed to be inserted";
+                        cout<<"Split: Duplicate value was supposed to be inserted"<<endl;
+
+                        int insertpos = i;
+                        cout<<"split: insert position:"<<i<<endl;
+                        int splitpos = i;
+                        for( ; i < current->numkeys ; i++)
+                        {
+                            current->getKey(keytype, nodekey, i);
+                            isLesser = compare(nodekey, key, keytype);
+                            if (isLesser > 0) {
+                                //cout<<"IsLesser:"<<isLesser;
+                                break;
+                            }
+                        }
+
+                        if( i < current->numkeys)               // That is at least one element bigger than k exists in the node
+                        {
+                            cout<<"split:duplicate value: bigger element ends the node"<<endl;
+                            splitpos = i+1;     //This is because we are adding one element before.
+                            handleLeafSplit( key , payload , &current , accessPath , height , insertpos , splitpos );
+                        }
+                        else if(i == current->numkeys)          // This is when array ends with k.
+                        {
+                            if(insertpos == 0)                  //Arrary starts and ends with k.
+                            {
+                                //ignore the insert key.
+                                cout<<"Alert: value dropped as it has reached maximum limit"<<endl;
+                                current = 0;
+                            }
+                            else
+                            {
+                                splitpos = insertpos;
+                                handleLeafSplit( key , payload , &current , accessPath , height , insertpos , splitpos );
+                            }
+
+                        }
+                        // i > numkeys is not possible.
+
+
+
                         //Algorithm: split the node when duplicate starts..
                         //Nothing else..
-                        if(i!=0)        //Split only when this current node is sole node
+                        /*if(i!=0)        //Split only when this current node is sole node
                             handleLeafSplit( key , payload , &current , accessPath , height , i , i );
                         else
-                            current = 0;        //This will just ignore the insert key.
+                        {
+                            //i is zero, that means input key is duplicate and is equal to first key of the node.
+                            //So we split the node after the first set of equal keys finish.
+                            for( ; i < current->numkeys ; i++)
+                            {
+                                current->getKey(keytype, nodekey, i);
+                                isLesser = compare(nodekey, key, keytype);
+                                if (isLesser > 0) {
+                                    //cout<<"IsLesser:"<<isLesser;
+                                    break;
+                                }
+                            }
+                            if(i != current->numkeys)
+                            {//insert@ith position and split @ (i+1)th position
+                                handleLeafSplit( key , payload , &current , accessPath , height , i , i+1 );
+                            }
+                            else
+                            {
+                                //This is the case where node is full with same values.. No room to put new value.. so ignore it..
+                                current = 0;
+                            }
+
+                            //current = 0;        //This will just ignore the insert key.
+                        }*/
 
                         //current=0;        //now handleLeafSplit will do this.
                     }
                     else                //normal case..New key is not duplicate..
                     {
-                        cout<<"Handle split:"<< key <<","<< payload <<","<< height<<","<< i<<","<<current->numkeys<<","<< ceil(((current->numkeys)+1)/2) <<endl;
-                        handleLeafSplit( key , payload , &current , accessPath , height , i , ceil(((current->numkeys)+1)/2.0) );
+//                        cout<<"Handle split:"<< key <<","<< payload <<","<< height<<","<< i<<","<<current->numkeys<<","<< ceil(((current->numkeys)+1)/2) <<endl;
+                        //handleLeafSplit( key , payload , &current , accessPath , height , i , ceil(((current->numkeys)+1)/2.0) );
+                        int insertat = i;
+                        int splitpostition = i;
+                        if(splitpostition == 0)
+                            splitpostition++;
+                        handleLeafSplit( key , payload , &current , accessPath , height , insertat , splitpostition );
                     }
 
                        //cout<<"Handle split:"<< key <<","<< payload <<","<< height<<","<< i<<","<<current->numkeys<<","<< ceil(((current->numkeys)+1)/2) <<endl;
@@ -182,7 +249,11 @@ public:
                 }
             }
             else
+            {
+                if(isLesser == 0)           //THis is to handle equal to case, in which next pointer is to be selected.
+                    i++;
                 handleNonLeaf(&current, i);
+            }
         }
 
         loadNode(root, rootAddress);
@@ -623,18 +694,20 @@ void testInserts(Index *index) {
     srand(1);
     char *keyN = (char *)calloc(8,1);
     char payL[PAYLOAD_LEN];
-    int inputarr[] = {1,2,3,4,5,5,5,5};
+    //int inputarr[] = {1,2,3,4,5,7,4,3,5,5,6,5}; //12
+    //int inputarr[] = {4,6,6,6,6,5,8,1,2};   //6
+    int inputarr[] = {1,2,3,4,5,4,3,5,5,6,5,5}; //12
 
-    int numInserts = 8;
+    int numInserts = 12;
     for(int i = 0 ; i <  numInserts; i++){
         a = rand()%100;
-        printf("inserting %d\n",inputarr[i]);
-        printf("--------\n");
+        printf("***inserting %d\n",inputarr[i]);
+        //printf("--------------------------------\n");
         Utils::copyBytes(keyN,Utils::getBytesForInt(inputarr[i]),8);
         strcpy(payL,keyN);
         index->insert(keyN,payL);
-        index->find(keyN);
-        cout<<"---------\n";
+        //index->find(keyN);
+        cout<<"---------------------------------\n";
 
     }
 
@@ -642,6 +715,7 @@ void testInserts(Index *index) {
     //index->findFirst(keyN, payL);
     //cout<<"Value received: "<<Utils::getIntForBytes(payL)<<endl;
 
+    Utils::copyBytes(keyN,Utils::getBytesForInt(3),8);
     //Iterator Testing
     LookupIter * li = index->find(keyN);
     //Display Iterator data.
