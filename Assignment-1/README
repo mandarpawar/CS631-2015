@@ -100,3 +100,65 @@ the other should submit an empty file named "Submitted by XX" where XX is the ro
 who submitted the assignment. A submission link for the same will be provided on moodle.
 
 All the best!
+
+
+
+====================================================================================================================
+
+**** Group Members:
+
+Mandar Pawar (143059001)
+Bhavesh Singh(143059003)
+
+
+
+**** Code changes to allow duplicate keys in the leaf nodes: (insert() function)
+
+1) When leaf node does not require a split during insertion, no change is required.
+    Key will be added at its proper posititon.
+
+2) When split is necessary there are many conditions.
+
+    Suppose, k is the key to insert.
+    2.1) Suppose existing values in the node are (k,k,k,k)
+         Code flow: as the node already has all the k values, new insertion is skipped, as per the requirement.
+
+    2.2) Suppose existing values in the node are (k,k,a,b)
+         Code flow: new value k is inserted at the start and node is split after all the k's are finished.
+                    So, new leaves become (k,k,k) and (a,b)
+
+    2.3) Suppose existing values in the node are (a,k,k,b)
+         Code flow: new value k is inserted at after a and node is split after all k values.
+                    So, new leaves become (a,k,k,k) and (b)
+
+    2.4) Suppose existing values in the node are (a,b,k,k)
+         Code flow: new value is inserted after b and node is split before first k starts.
+                    So, new leaves become (a,b) and (k,k,k)
+
+    All these changes are done in insert(key,payload) function.
+    Above changes may violate minimum occupancy requirement of the leaves. But, this deviation is allowed for this assignment.
+
+3) Comparison operator on key:
+
+    Function name: compare(key1,key2,keylen)
+
+    This function is modified to return 0 on equality when two ints are passed as keytypes.
+
+
+4) Iterator changes:
+
+    Code file: LookupIterator.cpp
+
+    Iterator can be initialized on a tree with a particular search value.
+
+    If( search value not found)
+        null iterator is returned.
+    else
+        iterator points to the actual key values in the leaf nodes.
+
+    Values can be accessed till the iterator returns hasnext()==true.
+    When hasnext()== true, then go to next value and fetch payload.
+    This specification is a slight deviation from generally used iterators in java, where hasnext() method itself
+    increments the pointer and points to next record.
+    Here we explicitly advance it using next() function when we find that next element is available.
+
